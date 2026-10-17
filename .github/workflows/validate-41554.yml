@@ -1,0 +1,35 @@
+name: Verify #41554 schema behavior
+
+on:
+  push:
+    branches:
+      - ci/41418-schema-validation
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install focused backend test and lint dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "flask==3.1.3" "pydantic==2.13.5" "pytest==9.1.1" "ruff==0.16.9" "flask-restx @ git+https://github.com/asukaminato0721/flask-restx@27758e26f8f740d7525d5039c51a9e524b6e2b68"
+      - name: Focused schema registration tests
+        env:
+          PYTHONPATH: api
+        run: |
+          python -m pytest --noconftest -q api/tests/unit_tests/controllers/common/test_schema.py -k "register_schema_models_registers_multiple_models or register_enum_models_registers_single_enum_schema or register_enum_models_registers_multiple_enum_schemas"
+      - name: Ruff lint and format
+        run: |
+          ruff check api/tests/unit_tests/controllers/common/test_schema.py
+          ruff format --check api/tests/unit_tests/controllers/common/test_schema.py
+      - name: Syntax compilation
+        run: |
+          python -m py_compile api/tests/unit_tests/controllers/common/test_schema.py
