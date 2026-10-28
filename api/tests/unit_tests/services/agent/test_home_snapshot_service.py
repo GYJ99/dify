@@ -29,7 +29,7 @@ from services.agent.errors import (
     AgentHomeSnapshotTooLargeError,
 )
 from services.agent.home_snapshot_service import AgentHomeSnapshotService, validate_home_snapshot_binding
-from services.agent.workspace_service import AgentWorkspaceBindingGenerationMismatchError, AgentWorkspaceService
+from services.agent.workspace_service import AgentWorkspaceBindingGenerationMismatchError
 from tests.helpers.unit.config_override import apply_config_overrides
 
 
@@ -392,26 +392,32 @@ def test_home_snapshot_collection_final_delete_failure_propagates(
     delete.assert_called_once_with(snapshot_ref="snapshot-ref-1")
 
 
-def _apply_with_client_error(monkeypatch: pytest.MonkeyPatch, error: Exception) -> None:
-    session = MagicMock()
-    session.scalar.return_value = SimpleNamespace(app_id="app-1", backing_app_id=None)
-    binding = SimpleNamespace(
-        backend_binding_ref="binding-ref-1",
-        agent_id="agent-1",
-        base_home_snapshot_id="home-old",
-        agent_config_version_id="build-1",
-        agent_config_version_kind="build_draft",
-    )
+def _apply_with_client_error(monkeypatch: pytest.MonkeyPatch, session: Session, error: Exception) -> None:
+    # Exercise the real agent and active-binding lookups before injecting the backend error.
+    _persist_build_binding(session, app_id="app-1", backing_app_id=None)
     client = MagicMock()
     client.create_home_snapshot_from_binding_sync.side_effect = error
     monkeypatch.setattr(AgentHomeSnapshotService, "_client", lambda: nullcontext(client))
-    monkeypatch.setattr(AgentWorkspaceService, "get_active_binding", MagicMock(return_value=binding))
-    monkeypatch.setattr(AgentWorkspaceService, "validate_binding_generation", MagicMock())
 
     AgentHomeSnapshotService.create_for_build_apply(session=session, build_draft=_build_draft())
 
 
-def test_build_apply_surfaces_the_backend_message(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_apply_rejects_wrong_tenant_before_contacting_backend(
+    monkeypatch: pytest.MonkeyPatch, sqlite_session: Session
+) -> None:
+    _persist_build_binding(sqlite_session, app_id="app-1", backing_app_id=None)
+    client = _client()
+    monkeypatch.setattr(AgentHomeSnapshotService, "_client", lambda: nullcontext(client))
+    draft = _build_draft()
+    draft.tenant_id = "another-tenant"
+
+    with pytest.raises(AgentBuildSandboxNotFoundError):
+        AgentHomeSnapshotService.create_for_build_apply(session=sqlite_session, build_draft=draft)
+
+    client.create_home_snapshot_from_binding_sync.assert_not_called()
+
+
+def test_build_apply_surfaces_the_backend_message(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
     error = DifyAgentHTTPError(
         status_code=502,
         detail={
@@ -421,7 +427,7 @@ def test_build_apply_surfaces_the_backend_message(monkeypatch: pytest.MonkeyPatc
     )
 
     with pytest.raises(AgentHomeSnapshotCreateFailedError) as excinfo:
-        _apply_with_client_error(monkeypatch, error)
+        _apply_with_client_error(monkeypatch, sqlite_session, error)
 
     assert excinfo.value.data == {
         "code": "agent_home_snapshot_create_failed",
@@ -430,7 +436,7 @@ def test_build_apply_surfaces_the_backend_message(monkeypatch: pytest.MonkeyPatc
     }
 
 
-def test_build_apply_maps_a_too_large_snapshot_to_413(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_apply_maps_a_too_large_snapshot_to_413(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
     error = DifyAgentHTTPError(
         status_code=413,
         detail={
@@ -440,7 +446,7 @@ def test_build_apply_maps_a_too_large_snapshot_to_413(monkeypatch: pytest.Monkey
     )
 
     with pytest.raises(AgentHomeSnapshotTooLargeError) as excinfo:
-        _apply_with_client_error(monkeypatch, error)
+        _apply_with_client_error(monkeypatch, sqlite_session, error)
 
     assert excinfo.value.data == {
         "code": "agent_home_snapshot_too_large",
@@ -449,11 +455,11 @@ def test_build_apply_maps_a_too_large_snapshot_to_413(monkeypatch: pytest.Monkey
     }
 
 
-def test_build_apply_surfaces_a_non_dict_backend_detail(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_apply_surfaces_a_non_dict_backend_detail(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
     error = DifyAgentHTTPError(status_code=500, detail="upstream exploded")
 
     with pytest.raises(AgentHomeSnapshotCreateFailedError) as excinfo:
-        _apply_with_client_error(monkeypatch, error)
+        _apply_with_client_error(monkeypatch, sqlite_session, error)
 
     assert excinfo.value.data == {
         "code": "agent_home_snapshot_create_failed",
@@ -462,11 +468,11 @@ def test_build_apply_surfaces_a_non_dict_backend_detail(monkeypatch: pytest.Monk
     }
 
 
-def test_build_apply_surfaces_a_transport_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_apply_surfaces_a_transport_failure(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
     error = DifyAgentTimeoutError("read timed out after 45.0s")
 
     with pytest.raises(AgentHomeSnapshotCreateFailedError) as excinfo:
-        _apply_with_client_error(monkeypatch, error)
+        _apply_with_client_error(monkeypatch, sqlite_session, error)
 
     assert excinfo.value.data == {
         "code": "agent_home_snapshot_create_failed",
@@ -475,8 +481,8 @@ def test_build_apply_surfaces_a_transport_failure(monkeypatch: pytest.MonkeyPatc
     }
 
 
-def test_build_apply_still_maps_404_to_a_missing_sandbox(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_apply_still_maps_404_to_a_missing_sandbox(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
     error = DifyAgentNotFoundError(status_code=404, detail={"code": "binding_lost", "message": "gone"})
 
     with pytest.raises(AgentBuildSandboxNotFoundError):
-        _apply_with_client_error(monkeypatch, error)
+        _apply_with_client_error(monkeypatch, sqlite_session, error)
