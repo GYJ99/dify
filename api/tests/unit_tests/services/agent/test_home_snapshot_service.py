@@ -436,7 +436,9 @@ def test_build_apply_surfaces_the_backend_message(monkeypatch: pytest.MonkeyPatc
     }
 
 
-def test_build_apply_maps_a_too_large_snapshot_to_413(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
+def test_build_apply_maps_a_too_large_snapshot_to_413(
+    monkeypatch: pytest.MonkeyPatch, sqlite_session: Session
+) -> None:
     error = DifyAgentHTTPError(
         status_code=413,
         detail={
@@ -455,7 +457,9 @@ def test_build_apply_maps_a_too_large_snapshot_to_413(monkeypatch: pytest.Monkey
     }
 
 
-def test_build_apply_surfaces_a_non_dict_backend_detail(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
+def test_build_apply_surfaces_a_non_dict_backend_detail(
+    monkeypatch: pytest.MonkeyPatch, sqlite_session: Session
+) -> None:
     error = DifyAgentHTTPError(status_code=500, detail="upstream exploded")
 
     with pytest.raises(AgentHomeSnapshotCreateFailedError) as excinfo:
@@ -481,7 +485,9 @@ def test_build_apply_surfaces_a_transport_failure(monkeypatch: pytest.MonkeyPatc
     }
 
 
-def test_build_apply_still_maps_404_to_a_missing_sandbox(monkeypatch: pytest.MonkeyPatch, sqlite_session: Session) -> None:
+def test_build_apply_still_maps_404_to_a_missing_sandbox(
+    monkeypatch: pytest.MonkeyPatch, sqlite_session: Session
+) -> None:
     error = DifyAgentNotFoundError(status_code=404, detail={"code": "binding_lost", "message": "gone"})
 
     with pytest.raises(AgentBuildSandboxNotFoundError):
