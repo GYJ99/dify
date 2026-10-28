@@ -399,7 +399,13 @@ def _apply_with_client_error(monkeypatch: pytest.MonkeyPatch, session: Session, 
     client.create_home_snapshot_from_binding_sync.side_effect = error
     monkeypatch.setattr(AgentHomeSnapshotService, "_client", lambda: nullcontext(client))
 
-    AgentHomeSnapshotService.create_for_build_apply(session=session, build_draft=_build_draft())
+    try:
+        AgentHomeSnapshotService.create_for_build_apply(session=session, build_draft=_build_draft())
+    finally:
+        # Even the 404 mapping case must reach the backend, not fail an earlier lookup.
+        client.create_home_snapshot_from_binding_sync.assert_called_once()
+        request = client.create_home_snapshot_from_binding_sync.call_args.args[0]
+        assert request.backend_binding_ref == "binding-ref-1"
 
 
 def test_build_apply_rejects_wrong_tenant_before_contacting_backend(
