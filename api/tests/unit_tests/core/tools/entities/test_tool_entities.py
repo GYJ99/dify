@@ -52,7 +52,7 @@ def test_tool_parameter_accepts_multiple_select_declarations(parameter_type: Too
 @pytest.mark.parametrize(
     ("value", "message"),
     [
-        ("a", "must be a list"),
+        (42, "must be a list"),
         (["a", 1], "only strings"),
         (["missing"], "not in options"),
         ([], "not found in tool config"),
@@ -71,6 +71,39 @@ def test_multiple_select_normalization_preserves_explicit_empty_list():
     assert parameter.init_frontend_parameter(None) == ["a"]
     assert parameter.init_frontend_parameter([]) == []
     assert parameter.init_frontend_parameter(["a", "b"]) == ["a", "b"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("a,b", ["a", "b"]),
+        (" a , b ", ["a", "b"]),
+        ("a,,b", ["a", "b"]),
+        ("", []),
+        (" , , ", []),
+    ],
+)
+def test_multiple_select_normalization_splits_legacy_comma_separated_string(
+    value: str, expected: list[str]
+):
+    parameter = _make_select_parameter(multiple=True)
+
+    assert parameter.init_frontend_parameter(value) == expected
+
+
+@pytest.mark.parametrize("value", ["", " , , "])
+def test_multiple_select_normalization_rejects_empty_required_legacy_value(value: str):
+    parameter = _make_select_parameter(multiple=True, required=True)
+
+    with pytest.raises(ValueError, match="not found in tool config"):
+        parameter.init_frontend_parameter(value)
+
+
+def test_multiple_select_normalization_validates_legacy_string_options():
+    parameter = _make_select_parameter(multiple=True)
+
+    with pytest.raises(ValueError, match="not in options"):
+        parameter.init_frontend_parameter("a,invalid")
 
 
 def test_log_message_metadata_none_defaults_to_empty_dict():
