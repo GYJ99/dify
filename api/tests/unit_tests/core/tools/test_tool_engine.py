@@ -163,6 +163,36 @@ def test_convert_tool_response_to_str_and_extract_binary_messages():
         )
 
 
+@pytest.mark.parametrize("mime_type", [None, ""])
+@pytest.mark.parametrize(
+    ("message_type", "url", "expected_mimetype"),
+    [
+        (ToolInvokeMessage.MessageType.IMAGE_LINK, "https://example.com/image.png", "image/png"),
+        (ToolInvokeMessage.MessageType.IMAGE, "https://example.com/image.unknown", "image/jpeg"),
+        (ToolInvokeMessage.MessageType.BINARY_LINK, "https://example.com/file.bin", "application/octet-stream"),
+        (ToolInvokeMessage.MessageType.BLOB, "https://example.com/file.bin", "application/octet-stream"),
+        (ToolInvokeMessage.MessageType.LINK, "https://example.com/file.pdf", "application/octet-stream"),
+    ],
+)
+def test_extract_tool_response_with_null_or_empty_mimetype(
+    mime_type: str | None,
+    message_type: ToolInvokeMessage.MessageType,
+    url: str,
+    expected_mimetype: str,
+):
+    message = ToolInvokeMessage(
+        type=message_type,
+        message=ToolInvokeMessage.TextMessage(text=url),
+        meta={"mime_type": mime_type},
+    )
+
+    binaries = list(ToolEngine._extract_tool_response_binary_and_text([message]))
+
+    assert len(binaries) == 1
+    assert binaries[0].mimetype == expected_mimetype
+    assert binaries[0].url == url
+
+
 @pytest.mark.parametrize("json_first", [True, False])
 @pytest.mark.parametrize(
     ("text", "json_object"),

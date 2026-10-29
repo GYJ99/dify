@@ -12,6 +12,7 @@ import core.tools.utils.message_transformer as mt
 from core.app.entities.app_invoke_entities import InvokeFrom, UserFrom
 from core.app.file_access import FileAccessScope, bind_file_access_scope, get_current_file_access_scope
 from core.tools.entities.tool_entities import ToolInvokeMessage
+from core.tools.tool_engine import ToolEngine
 from core.tools.utils.message_transformer import ToolFileMessageTransformer, safe_json_dict, safe_json_value
 from models.tools import ToolFile
 
@@ -103,6 +104,11 @@ class TestMessageTransformerCases:
         assert "mime_type" in (o.meta or {})
         assert o.meta["mime_type"] is None
         assert o.meta["tool_file_id"] == "fake-tool-file-id"
+
+        binaries = list(ToolEngine._extract_tool_response_binary_and_text(out))
+        assert len(binaries) == 1
+        assert binaries[0].mimetype == "application/octet-stream"
+        assert binaries[0].url == o.message.text
 
     @staticmethod
     def test_transform_tool_invoke_messages_prefers_filename_extension_over_mimetype():
