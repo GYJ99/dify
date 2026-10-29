@@ -402,6 +402,9 @@ class ToolParameter(PluginParameter):
         parameter_value = self.default if value is None else value
         if parameter_value is None:
             parameter_value = []
+        elif isinstance(parameter_value, str):
+            # Older workflows persisted multiple selections as comma-separated strings.
+            parameter_value = [item.strip() for item in parameter_value.split(",") if item.strip()]
         if not isinstance(parameter_value, list):
             raise ValueError(f"tool parameter {self.name} must be a list when multiple is true")
         if not all(isinstance(item, str) for item in parameter_value):
