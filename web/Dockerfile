@@ -56,6 +56,8 @@ ENV APP_API_URL=http://127.0.0.1:5001
 ENV MARKETPLACE_API_URL=https://marketplace.dify.ai
 ENV MARKETPLACE_URL=https://marketplace.dify.ai
 ENV PORT=3000
+# Prevent numeric-looking Docker hostnames from becoming a zero listen backlog.
+ENV HOSTNAME=0.0.0.0
 ENV EXPERIMENTAL_ENABLE_VINEXT=false
 ENV NEXT_TELEMETRY_DISABLED=1
 
