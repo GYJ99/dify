@@ -62,10 +62,10 @@ it('replaces full node snapshots without retaining deleted fields', async () => 
     }),
   )
 
-  expect(result.current.nodes.find(node => node.id === 'node-1')?.data).toEqual({
+  expect(result.current.nodes.find((node) => node.id === 'node-1')?.data).toEqual({
     title: 'Renamed',
   })
-  expect(result.current.nodes.find(node => node.id === 'node-2')?.data).toMatchObject({
+  expect(result.current.nodes.find((node) => node.id === 'node-2')?.data).toMatchObject({
     title: 'Node 2',
     value: 'untouched',
   })
