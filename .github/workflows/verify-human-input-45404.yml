@@ -29,8 +29,3 @@ jobs:
         run: vp run type-check
       - name: Format and lint changed files
         run: vp fmt --check app/components/workflow/nodes/human-input/utils.ts app/components/workflow/nodes/human-input/components/variable-in-markdown.tsx app/components/workflow/nodes/human-input/__tests__/utils.spec.ts app/components/workflow/nodes/human-input/components/__tests__/variable-in-markdown.spec.tsx app/components/workflow/nodes/human-input/components/__tests__/form-content-preview.spec.tsx
-      - name: Display formatter correction
-        if: failure()
-        run: |
-          vp fmt app/components/workflow/nodes/human-input/components/__tests__/variable-in-markdown.spec.tsx
-          git diff -- app/components/workflow/nodes/human-input/components/__tests__/variable-in-markdown.spec.tsx
