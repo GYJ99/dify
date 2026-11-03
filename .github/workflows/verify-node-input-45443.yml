@@ -24,10 +24,10 @@ jobs:
       - name: Setup Web
         uses: ./.github/actions/setup-web
       - name: Focused unit tests
-        run: vp test run --project unit app/components/workflow/nodes/knowledge-retrieval-v2/__tests__/use-config.spec.ts app/components/workflow/hooks/__tests__/use-node-data-update.spec.ts
+        run: vp test run --project unit app/components/workflow/nodes/knowledge-retrieval-v2/__tests__/use-config.spec.ts app/components/workflow/hooks/__tests__/use-node-data-update.spec.ts app/components/workflow/nodes/knowledge-retrieval/__tests__/panel.spec.tsx
       - name: Web types
         run: vp run type-check
       - name: Web lint (tsslint)
         run: vp run lint:tss
       - name: Format changed files
-        run: vp fmt --check app/components/workflow/nodes/knowledge-retrieval-v2/__tests__/use-config.spec.ts app/components/workflow/hooks/__tests__/use-node-data-update.spec.ts app/components/workflow/nodes/_base/hooks/use-node-crud.ts app/components/workflow/hooks/use-node-data-update.ts
+        run: vp fmt --check app/components/workflow/nodes/knowledge-retrieval-v2/__tests__/use-config.spec.ts app/components/workflow/hooks/__tests__/use-node-data-update.spec.ts app/components/workflow/nodes/_base/hooks/use-node-crud.ts app/components/workflow/hooks/use-node-data-update.ts app/components/workflow/nodes/knowledge-retrieval/use-config.ts
