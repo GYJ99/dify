@@ -17,7 +17,7 @@ export const useNodeDataUpdate = () => {
   const collaborativeWorkflow = useCollaborativeWorkflow()
 
   const handleNodeDataUpdate = useCallback(
-    ({ id, data }: NodeDataUpdatePayload) => {
+    ({ id, data, replace = false }: NodeDataUpdatePayload) => {
       const { nodes, setNodes } = collaborativeWorkflow.getState()
       const newNodes = produce(nodes, (draft) => {
         const currentNode = draft.find((node) => node.id === id)!
