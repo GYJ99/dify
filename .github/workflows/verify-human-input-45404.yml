@@ -1,0 +1,31 @@
+name: Verify Human Input optional-default fix (fork)
+
+on:
+  push:
+    branches:
+      - ci/45404-human-input-verify
+
+permissions:
+  contents: read
+
+jobs:
+  focused-web:
+    name: Focused Human Input unit and type checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Web
+        uses: ./.github/actions/setup-web
+      - name: Focused unit tests
+        run: vp test run --project unit app/components/workflow/nodes/human-input/__tests__/utils.spec.ts app/components/workflow/nodes/human-input/components/__tests__/variable-in-markdown.spec.tsx app/components/workflow/nodes/human-input/components/__tests__/form-content-preview.spec.tsx
+      - name: Web types
+        run: vp run type-check
+      - name: Format and lint changed files
+        run: vp fmt --check app/components/workflow/nodes/human-input/utils.ts app/components/workflow/nodes/human-input/components/variable-in-markdown.tsx app/components/workflow/nodes/human-input/__tests__/utils.spec.ts app/components/workflow/nodes/human-input/components/__tests__/variable-in-markdown.spec.tsx app/components/workflow/nodes/human-input/components/__tests__/form-content-preview.spec.tsx
