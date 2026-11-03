@@ -22,7 +22,7 @@ export const useNodeDataUpdate = () => {
       const newNodes = produce(nodes, (draft) => {
         const currentNode = draft.find((node) => node.id === id)!
 
-        if (currentNode) currentNode.data = { ...currentNode.data, ...data }
+        if (currentNode) currentNode.data = replace ? data : { ...currentNode.data, ...data }
       })
       setNodes(newNodes)
     },
