@@ -8,6 +8,7 @@ import { useNodesReadOnly } from './use-workflow'
 type NodeDataUpdatePayload = {
   id: string
   data: Record<string, unknown>
+  replace?: boolean
 }
 
 export const useNodeDataUpdate = () => {
