@@ -1,0 +1,38 @@
+name: Verify SQLite deletion-order test (fork only)
+
+on:
+  push:
+    branches:
+      - ci/45585-sqlite-delete-order
+
+permissions:
+  contents: read
+
+jobs:
+  focused-api:
+    name: SQLite deletion-order tests and Ruff
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated verification branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv and Python 3.13
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.13'
+          enable-cache: false
+      - name: Check lockfile
+        run: uv lock --project api --check
+      - name: Install API dev dependencies
+        run: uv sync --project api --dev
+      - name: Focused pytest
+        run: |
+          uv run --project api pytest -p no:benchmark --timeout 180 -q \
+            -o 'addopts=-p no:opik -p no:langsmith_plugin --import-mode=importlib' \
+            api/tests/unit_tests/services/agent/test_deletion_service.py
+      - name: Ruff check
+        run: uv run --project api ruff check api/tests/unit_tests/services/agent/test_deletion_service.py
+      - name: Ruff formatting
+        run: uv run --project api ruff format --check api/tests/unit_tests/services/agent/test_deletion_service.py
