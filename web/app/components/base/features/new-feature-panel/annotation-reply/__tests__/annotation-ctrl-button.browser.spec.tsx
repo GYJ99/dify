@@ -68,7 +68,7 @@ it('creates an annotation from the answer and displays the returned identity and
 })
 
 // https://github.com/langgenius/dify/issues/46103: GridMask intercepts the Close control.
-it.fails('opens the real quota modal instead of posting an annotation and restores trigger focus', async () => {
+it('opens the real quota modal instead of posting an annotation and restores trigger focus', async () => {
   const { screen } = await renderFeature(
     <ModalContextProvider>
       <Answer />
